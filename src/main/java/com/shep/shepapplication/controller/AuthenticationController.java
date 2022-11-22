@@ -1,5 +1,8 @@
 package com.shep.shepapplication.controller;
 
+import com.shep.shepapplication.dto.RegistrationDto;
+import com.shep.shepapplication.exceptions.user.EmailIsBusyException;
+import com.shep.shepapplication.exceptions.user.LoginIsBusyException;
 import com.shep.shepapplication.security.jwt.JwtRequest;
 import com.shep.shepapplication.security.jwt.JwtResponse;
 import com.shep.shepapplication.security.jwt.RefreshJwtRequest;
@@ -12,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.security.auth.message.AuthException;
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping(value = "auth")
@@ -36,5 +40,10 @@ public class AuthenticationController {
     public ResponseEntity<JwtResponse> getNewRefreshToken(@RequestBody RefreshJwtRequest request) throws AuthException {
         final JwtResponse token = authService.refresh(request.getRefreshToken());
         return ResponseEntity.ok(token);
+    }
+    @PostMapping("registration")
+    public ResponseEntity<String> registration(@Valid @RequestBody RegistrationDto registrationDto) throws LoginIsBusyException, EmailIsBusyException {
+        authService.register(registrationDto);
+        return ResponseEntity.ok("User created");
     }
 }

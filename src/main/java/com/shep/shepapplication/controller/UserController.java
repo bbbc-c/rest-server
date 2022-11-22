@@ -1,6 +1,6 @@
 package com.shep.shepapplication.controller;
 
-import com.shep.shepapplication.dto.AuthenticationDto;
+import com.shep.shepapplication.dto.RegistrationDto;
 import com.shep.shepapplication.entity.UserEntity;
 import com.shep.shepapplication.security.jwt.JwtProvider;
 import com.shep.shepapplication.service.UserService;
@@ -27,9 +27,9 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AuthenticationDto> getOne(@PathVariable("id") Long id){
+    public ResponseEntity<RegistrationDto> getOne(@PathVariable("id") Long id){
         Optional<UserEntity> userEntity = userService.findById(id);
-        return ResponseEntity.ok(modelMapper.map(userEntity.get(), AuthenticationDto.class));
+        return ResponseEntity.ok(modelMapper.map(userEntity.get(), RegistrationDto.class));
     }
 
 

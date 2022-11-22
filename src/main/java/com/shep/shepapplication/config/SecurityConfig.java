@@ -43,7 +43,10 @@ public class SecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeHttpRequests(
-                        authz -> authz.antMatchers("/auth/login","/auth/token").permitAll()
+                        authz -> authz.antMatchers(
+                                "/auth/login",
+                                "/auth/token",
+                                "/auth/registration").permitAll()
                             .anyRequest().authenticated()
                             .and()
                             .addFilterAfter(jwtFilter, UsernamePasswordAuthenticationFilter.class)
