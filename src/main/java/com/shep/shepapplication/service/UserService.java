@@ -21,7 +21,6 @@ import java.util.Optional;
 public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public UserService(UserRepository userRepository, RoleRepository roleRepository) {
         this.userRepository = userRepository;
@@ -36,22 +35,10 @@ public class UserService {
     public UserEntity findFirstByEmail(String email){
         return userRepository.findFirstByEmail(email);
     }
-
-    public UserEntity register(UserEntity user) throws LoginIsBusyException, EmailIsBusyException {
-        if (findFirstByLogin(user.getLogin()) != null)
-            throw new LoginIsBusyException();
-        if (findFirstByEmail(user.getEmail()) != null)
-            throw new EmailIsBusyException();
-        Role roleUser = roleRepository.findByName("ROLE_USER");
-        List<Role> userRoles = new ArrayList<>();
-        userRoles.add(roleUser);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRoles(userRoles);
-        user.setStatus(Status.NOT_ACTIVE);
-        user.setDateRegistration(new Date());
-        UserEntity userEntity = userRepository.save(user);
-        log.info("IN register - user: {} успешно зарегестрирован",userEntity);
-        return  userEntity;
+    public Optional<UserEntity> findByLogin(String login){
+        return userRepository.findByLogin(login);
     }
+
+
 
 }

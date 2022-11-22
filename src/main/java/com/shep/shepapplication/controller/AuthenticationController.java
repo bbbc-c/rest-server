@@ -1,70 +1,49 @@
 package com.shep.shepapplication.controller;
 
-import com.shep.shepapplication.dto.AuthenticationDto;
-import com.shep.shepapplication.entity.UserEntity;
+import com.shep.shepapplication.dto.RegistrationDto;
 import com.shep.shepapplication.exceptions.user.EmailIsBusyException;
 import com.shep.shepapplication.exceptions.user.LoginIsBusyException;
-import com.shep.shepapplication.security.jwt.JwtTokenProvider;
-import com.shep.shepapplication.service.UserService;
+import com.shep.shepapplication.security.jwt.JwtRequest;
+import com.shep.shepapplication.security.jwt.JwtResponse;
+import com.shep.shepapplication.security.jwt.RefreshJwtRequest;
+import com.shep.shepapplication.service.AuthService;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.Map;
+import javax.security.auth.message.AuthException;
+import javax.validation.Valid;
 
 @RestController
-@RequestMapping(value = "/auth/")
+@RequestMapping(value = "auth")
 @Slf4j
 public class AuthenticationController {
+    private final AuthService authService;
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final UserService userService;
-    private final ModelMapper modelMapper;
-
-    @Autowired
-    public AuthenticationController(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider, UserService userService, ModelMapper modelMapper) {
-        this.authenticationManager = authenticationManager;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.userService = userService;
-        this.modelMapper = modelMapper;
+    public AuthenticationController(AuthService authService) {
+        this.authService = authService;
     }
-    @PostMapping("/login")
-    public ResponseEntity login(@RequestBody AuthenticationDto authenticationDto) {
-        try {
-            String login = authenticationDto.getLogin();
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(login, authenticationDto.getPassword()));
-            UserEntity userEntity = userService.findFirstByLogin(login);
-            if (userEntity == null)
-                throw new UsernameNotFoundException("Пользователь с логином: " + login + " не найден");
-            String token = jwtTokenProvider.createToken(login, userEntity.getRoles());
-
-            Map<Object, Object> response = new HashMap<>();
-            response.put("login", login);
-            response.put("token", token);
-            return ResponseEntity.ok(response);
-        } catch (AuthenticationException e) {
-            throw new BadCredentialsException("Неправильный логин или пароль");
-        }
-
+    @PostMapping("login")
+    public ResponseEntity<JwtResponse> login(@RequestBody JwtRequest authRequest) throws AuthException {
+        final JwtResponse token = authService.login(authRequest);
+        return ResponseEntity.ok(token);
     }
-    @PostMapping("/registration")
-    public ResponseEntity<AuthenticationDto> registration(@RequestBody AuthenticationDto user) throws LoginIsBusyException, EmailIsBusyException {
-        return ResponseEntity.ok(modelMapper.map(
-                userService.register(
-                        modelMapper.map(user,UserEntity.class)
-                ),
-                AuthenticationDto.class));
+    @PostMapping("token")
+    public ResponseEntity<JwtResponse> getNewAccessToken(@RequestBody RefreshJwtRequest request) throws AuthException {
+        final JwtResponse token = authService.getAccessToken(request.getRefreshToken());
+        return ResponseEntity.ok(token);
+    }
+    @PostMapping("refresh")
+    public ResponseEntity<JwtResponse> getNewRefreshToken(@RequestBody RefreshJwtRequest request) throws AuthException {
+        final JwtResponse token = authService.refresh(request.getRefreshToken());
+        return ResponseEntity.ok(token);
+    }
+    @PostMapping("registration")
+    public ResponseEntity<String> registration(@Valid @RequestBody RegistrationDto registrationDto) throws LoginIsBusyException, EmailIsBusyException {
+        authService.register(registrationDto);
+        return ResponseEntity.ok("User created");
     }
 }

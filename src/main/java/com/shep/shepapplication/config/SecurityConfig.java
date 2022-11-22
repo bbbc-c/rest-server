@@ -1,8 +1,8 @@
 package com.shep.shepapplication.config;
 
 
-import com.shep.shepapplication.security.jwt.JwtConfigurer;
-import com.shep.shepapplication.security.jwt.JwtTokenProvider;
+import com.shep.shepapplication.security.jwt.JwtFilter;
+import com.shep.shepapplication.security.jwt.JwtProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,16 +13,17 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtFilter jwtFilter;
 
     @Autowired
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider){
-        this.jwtTokenProvider = jwtTokenProvider;
+    public SecurityConfig(JwtFilter jwtFilter){
+        this.jwtFilter = jwtFilter;
     }
 
     @Bean
@@ -36,17 +37,19 @@ public class SecurityConfig {
     }
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
+        return http
                 .httpBasic().disable()
                 .csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
-                .authorizeRequests()
-                .antMatchers("/auth/**").permitAll()
-                .antMatchers("/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
-                .and()
-                .apply(new JwtConfigurer(jwtTokenProvider));
-        return http.build();
+                .authorizeHttpRequests(
+                        authz -> authz.antMatchers(
+                                "/auth/login",
+                                "/auth/token",
+                                "/auth/registration").permitAll()
+                            .anyRequest().authenticated()
+                            .and()
+                            .addFilterAfter(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                ).build();
     }
 }
