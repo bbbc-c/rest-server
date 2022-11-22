@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import javax.security.auth.message.AuthException;
+
 @RestControllerAdvice
 public class DefaultAdvice extends ResponseEntityExceptionHandler {
 
@@ -22,6 +24,11 @@ public class DefaultAdvice extends ResponseEntityExceptionHandler {
     }
     @ExceptionHandler(EmailIsBusyException.class)
     public ResponseEntity<ErrorDto> handleException (EmailIsBusyException e){
+        ErrorDto error = new ErrorDto(HttpStatus.FORBIDDEN,e.getMessage());
+        return new ResponseEntity<>(error,error.getHttpStatus());
+    }
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<ErrorDto> handleException (AuthException e){
         ErrorDto error = new ErrorDto(HttpStatus.FORBIDDEN,e.getMessage());
         return new ResponseEntity<>(error,error.getHttpStatus());
     }

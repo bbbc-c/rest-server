@@ -36,6 +36,9 @@ public class UserService {
     public UserEntity findFirstByEmail(String email){
         return userRepository.findFirstByEmail(email);
     }
+    public Optional<UserEntity> findByLogin(String login){
+        return userRepository.findByLogin(login);
+    }
 
     public UserEntity register(UserEntity user) throws LoginIsBusyException, EmailIsBusyException {
         if (findFirstByLogin(user.getLogin()) != null)

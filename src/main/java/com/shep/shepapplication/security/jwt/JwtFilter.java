@@ -1,9 +1,12 @@
 package com.shep.shepapplication.security.jwt;
 
-import io.jsonwebtoken.Jwt;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.GenericFilterBean;
 
 import javax.servlet.FilterChain;
@@ -13,23 +16,38 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
-public class JwtTokenFilter extends GenericFilterBean {
 
-    private JwtTokenProvider jwtTokenProvider;
+@Component
+@Slf4j
+public class JwtFilter extends GenericFilterBean {
 
-    public JwtTokenFilter(JwtTokenProvider jwtTokenProvider){
-        this.jwtTokenProvider = jwtTokenProvider;
+    private static final String AUTHORIZATION = "Authorization";
+
+    private final JwtProvider jwtProvider;
+
+    public JwtFilter(JwtProvider jwtProvider){
+        this.jwtProvider = jwtProvider;
     }
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws ServletException, IOException {
-        String token = jwtTokenProvider.resolveToken((HttpServletRequest) servletRequest);
-        if (token != null && jwtTokenProvider.validateToken(token)){
-            Authentication authentication = jwtTokenProvider.getAuthentication(token);
-            if (authentication != null){
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+        final String token = getTokenFromRequest((HttpServletRequest) servletRequest);
+        if (token != null && jwtProvider.validateAccessToken(token)) {
+            final Claims claims = jwtProvider.getAccessClaims(token);
+            final JwtAuthentication jwtInfoToken = JwtUtils.generate(claims);
+            jwtInfoToken.setAuthenticated(true);
+            SecurityContextHolder.getContext().setAuthentication(jwtInfoToken);
         }
-        filterChain.doFilter(servletRequest,servletResponse);
+        filterChain.doFilter(servletRequest, servletResponse);
     }
+
+    private String getTokenFromRequest(HttpServletRequest request) {
+        final String bearer = request.getHeader(AUTHORIZATION);
+        if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
+            return bearer.substring(7);
+        }
+        return null;
+    }
+
+
 }
